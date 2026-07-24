@@ -35,6 +35,12 @@ func run() error {
 		return nil
 	}
 
+	// Reject partial credentials so operators can't accidentally deploy an
+	// open or weakly-authenticated proxy by setting only one of the two.
+	if (cfg.username == "") != (cfg.password == "") {
+		return fmt.Errorf("both --user and --pass (WORMHOLE_USER/WORMHOLE_PASS) must be set together")
+	}
+
 	level := slog.LevelInfo
 	if cfg.verbose {
 		level = slog.LevelDebug
@@ -57,7 +63,7 @@ func run() error {
 	}
 
 	authMode := "open (no authentication)"
-	if cfg.username != "" || cfg.password != "" {
+	if cfg.username != "" && cfg.password != "" {
 		authMode = "basic auth enabled"
 	}
 	logger.Info("wormhole starting",

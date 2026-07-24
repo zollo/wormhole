@@ -19,7 +19,9 @@ Wants=network-online.target
 [Service]
 Restart=always
 RestartSec=3s
-# Ensure a clean slate, then always pull the pinned tag before starting.
+# Ensure a clean slate, then pull the image before starting. Note that :latest
+# is a moving tag; pin a specific version or digest (e.g. :v1.2.3) for
+# reproducible, predictable deployments.
 ExecStartPre=-/usr/bin/docker rm -f wormhole
 ExecStartPre=/usr/bin/docker pull ghcr.io/zollo/wormhole:latest
 ExecStart=/usr/bin/docker run --rm --name wormhole \

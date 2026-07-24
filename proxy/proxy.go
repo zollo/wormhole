@@ -44,8 +44,9 @@ type Proxy struct {
 
 // Options configures a Proxy.
 type Options struct {
-	// Username and Password enable proxy Basic authentication. When both are
-	// empty the proxy is open and accepts any client.
+	// Username and Password enable proxy Basic authentication. Both must be
+	// set to require credentials; if either is empty the proxy is open and
+	// accepts any client.
 	Username string
 	Password string
 
@@ -74,7 +75,7 @@ func New(opts Options) *Proxy {
 	return &Proxy{
 		username: opts.Username,
 		password: opts.Password,
-		authOn:   opts.Username != "" || opts.Password != "",
+		authOn:   opts.Username != "" && opts.Password != "",
 		dialer:   dialer,
 		logger:   opts.Logger,
 		transport: &http.Transport{
@@ -140,7 +141,9 @@ func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		p.logger.Warn("upstream request failed",
 			"method", r.Method, "url", r.URL.String(), "error", err)
-		http.Error(w, "bad gateway: "+err.Error(), http.StatusBadGateway)
+		// Keep the detailed error in the logs only; don't leak upstream
+		// resolver/connection details to the client.
+		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -164,10 +167,13 @@ func (p *Proxy) handleHTTP(w http.ResponseWriter, r *http.Request) {
 func (p *Proxy) handleConnect(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 
-	upstream, err := p.dialer.Dial("tcp", r.Host)
+	// Use the request context so a client disconnect or server shutdown can
+	// interrupt an in-flight dial instead of blocking until the dial timeout.
+	upstream, err := p.dialer.DialContext(r.Context(), "tcp", r.Host)
 	if err != nil {
 		p.logger.Warn("connect dial failed", "host", r.Host, "error", err)
-		http.Error(w, "bad gateway: "+err.Error(), http.StatusBadGateway)
+		// Details stay in the logs; return a generic status to the client.
+		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
 

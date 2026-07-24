@@ -1,0 +1,9 @@
+.git
+.github
+*.md
+dist/
+wormhole
+*_test.go
+.gitignore
+Makefile
+LICENSE

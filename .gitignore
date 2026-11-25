@@ -1,0 +1,9 @@
+# Build output
+/wormhole
+/dist/
+*.exe
+
+# Go
+*.test
+*.out
+coverage.txt

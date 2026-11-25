@@ -1,0 +1,78 @@
+# GoReleaser configuration — https://goreleaser.com
+# Produces static binaries for common platforms, archives, checksums, and a
+# multi-arch container image on GHCR.
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: wormhole
+    main: .
+    binary: wormhole
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: wormhole
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "checksums.txt"
+
+dockers:
+  - image_templates:
+      - "ghcr.io/zollo/wormhole:{{ .Version }}-amd64"
+    use: buildx
+    dockerfile: Dockerfile
+    goarch: amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=VERSION={{ .Version }}"
+  - image_templates:
+      - "ghcr.io/zollo/wormhole:{{ .Version }}-arm64"
+    use: buildx
+    dockerfile: Dockerfile
+    goarch: arm64
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--build-arg=VERSION={{ .Version }}"
+
+docker_manifests:
+  - name_template: "ghcr.io/zollo/wormhole:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/zollo/wormhole:{{ .Version }}-amd64"
+      - "ghcr.io/zollo/wormhole:{{ .Version }}-arm64"
+  - name_template: "ghcr.io/zollo/wormhole:latest"
+    image_templates:
+      - "ghcr.io/zollo/wormhole:{{ .Version }}-amd64"
+      - "ghcr.io/zollo/wormhole:{{ .Version }}-arm64"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  draft: false
+  prerelease: auto

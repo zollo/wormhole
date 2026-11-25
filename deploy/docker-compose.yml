@@ -1,0 +1,28 @@
+# Run Wormhole as a long-lived service with Docker Compose.
+#
+#   docker compose up -d       # start in the background
+#   docker compose logs -f      # follow logs
+#   docker compose down         # stop and remove
+#
+# Edit the environment block (or point env_file at a .env) to configure.
+services:
+  wormhole:
+    image: ghcr.io/zollo/wormhole:latest
+    # Or build locally instead of pulling:
+    # build: ..
+    container_name: wormhole
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      WORMHOLE_ADDR: ":8080"
+      # Uncomment to require authentication:
+      # WORMHOLE_USER: "alice"
+      # WORMHOLE_PASS: "change-me"
+      WORMHOLE_VERBOSE: "false"
+    # Alternatively load secrets from a file:
+    # env_file:
+    #   - wormhole.env
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
